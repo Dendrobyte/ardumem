@@ -1,3 +1,5 @@
+#include <Arduino.h>
+#line 1 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
 /* 
 Ardumem game designed for Arduboy2
 by Dendrobyte
@@ -17,6 +19,21 @@ boolean buttonA, up, right, left, down; // All combos
 
 // TODO: Set up tones
 
+#line 20 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+void setup();
+#line 30 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+void loop();
+#line 67 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+void gameRunLoop();
+#line 75 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+void drawGameState();
+#line 95 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+void drawHorizRect(int topLeftX, int topLeftY);
+#line 99 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+void drawVertRect(int topLeftX, int topLeftY);
+#line 103 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+void showStartScreen();
+#line 20 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
 void setup() {
   arduboy.begin();
   arduboy.setFrameRate(30);
@@ -108,3 +125,4 @@ void showStartScreen() {
   arduboy.setCursor(31, 53);
   arduboy.print("A TO START");
 }
+

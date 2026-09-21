@@ -1,3 +1,5 @@
+#include <Arduino.h>
+#line 1 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
 /* 
 Ardumem game designed for Arduboy2
 by Dendrobyte
@@ -24,6 +26,23 @@ void playVisAndToneForSeq(int rectNum);
 
 // TODO: Set up tones
 
+#line 27 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+void setup();
+#line 39 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+void loop();
+#line 188 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+void newItemToSeq();
+#line 265 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+void drawHorizRect(int topLeftX, int topLeftY);
+#line 269 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+void drawVertRect(int topLeftX, int topLeftY);
+#line 273 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+void drawFilledHorizRect(int topLeftX, int topLeftY);
+#line 277 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+void drawFilledVertRect(int topLeftX, int topLeftY);
+#line 291 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+void showEndScreen();
+#line 27 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
 void setup() {
   arduboy.begin();
   beep.begin();
@@ -296,3 +315,4 @@ void showEndScreen() {
   arduboy.setCursor(31, 53);
   arduboy.print("A TO TRY AGAIN");
 }
+

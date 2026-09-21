@@ -30,17 +30,17 @@ void playVisAndToneForSeq(int rectNum);
 void setup();
 #line 39 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
 void loop();
-#line 188 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+#line 206 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
 void newItemToSeq();
-#line 265 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
-void drawHorizRect(int topLeftX, int topLeftY);
 #line 269 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
-void drawVertRect(int topLeftX, int topLeftY);
+void drawHorizRect(int topLeftX, int topLeftY);
 #line 273 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
-void drawFilledHorizRect(int topLeftX, int topLeftY);
+void drawVertRect(int topLeftX, int topLeftY);
 #line 277 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+void drawFilledHorizRect(int topLeftX, int topLeftY);
+#line 281 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
 void drawFilledVertRect(int topLeftX, int topLeftY);
-#line 291 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
+#line 295 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
 void showEndScreen();
 #line 27 "/Users/markbacon/Documents/arduboy-simon/arduboy-simon.ino"
 void setup() {
@@ -59,6 +59,7 @@ void loop() {
   if (!(arduboy.nextFrame())) return; // looks like it prevents async shit
   arduboy.clear(); // Maybe we don't always want to run this?
   beep.timer(); // doesn't stop without this, must be a manager
+  arduboy.pollButtons();
 
   // These could be a switch / screen state
   if (startScreen) {
@@ -96,15 +97,15 @@ void loop() {
 // Game state
 int currLevel = 0;
 int seqLength = 0; // Avoid length call, and next seq item gets added here
-int seqCurrPtr = -1; // Track current item being played
+int seqCurrPtr; // Track current item being played
 int seq[63]; // WR is 84, ggwp
 boolean waitingForInput = false; // Don't listen for input when sequence is playing
 boolean addNewNumToSeq = true;
 char textBuffer[16]; // Have one allocated text buffer to reuse constantly
-int selectedRect = 0; // 0/1/2/3/4 == none/up/down/left/right
 
 // Sequence related state
 boolean isPlayingSequence = false;
+boolean isBetweenRounds = false;
 
 // Entire game loop, using booleans as state again
 // Need ticks and timers for sequences and draws and whatnot
@@ -120,37 +121,57 @@ int currGuess = -1;
 void gameRunLoop() {
   // Create a timer that waits to play first part of seq
   // If we're not waiting for input, it means we can trigger next part of sequence
-  if (!waitingForInput and !isPlayingSequence) {
+  if (!waitingForInput && !isPlayingSequence) {
     newItemToSeq();
   }
   
   // Use current tick and delta whatever to play entire sequence
   // I might just be making my own timer? Lol idk
-  else if (!waitingForInput and isPlayingSequence) {
+  else if (!waitingForInput && isPlayingSequence) {
+    // Small pause between rounds
+    // Foolishly relying on tick being 0 when this starts from newItemToSeq
+    if (isBetweenRounds) {
+      if (tick > 0) {
+        tick--;
+      } else {
+        isBetweenRounds = false;
+        tick = seqTimerTickVal;
+      }
+      return;
+    }
+
     // If the tick is reset, play next sequence (or end)
+    arduboy.setCursor(24, 32);
+    
+    sprintf(textBuffer, "%2d", seqCurrPtr);
+    arduboy.print(textBuffer);
     if (tick == 0) {
-      seqCurrPtr++;
-      if (seqCurrPtr == seqLength) {
+      if (seqCurrPtr == seqLength-1) {
         // End seq, allow input
         isPlayingSequence = false;
         waitingForInput = true;
       } else {
-        // Set the empty rectangle to draw now
-        int currRect = seq[seqCurrPtr];
-        resetDrawnRectFor(currRect); // May actually be unnecessary if this draws after
+        // Set the empty rectangle to draw now (i think it's unnecessary)
+        //int currRect = seq[seqCurrPtr];
+        //resetDrawnRectFor(currRect);
 
         // First play for this
         //playVisAndToneForSeq(currRect);
         
         // Reset tick for the countdown
         tick = seqTimerTickVal;
+        seqCurrPtr++;
       }
     } else {
       // between 10 -> 1, do nothing as a pause
       if (tick < 10) {
         // do nothing
-      } else if (tick < 30) {
+      } else if (tick <= seqTimerTickVal) {
         // between 30 -> 11, play the next tone/show the next rect
+        arduboy.setCursor(24, 48);
+        
+        sprintf(textBuffer, "%2d", seqCurrPtr);
+        arduboy.print(textBuffer);
         playVisAndToneForSeq(seq[seqCurrPtr]);
       }
 
@@ -161,48 +182,45 @@ void gameRunLoop() {
   // Finally if we're waiting for input, we check for right and wrong
   // We don't need to track the whole seq, just if what's currently correct is good
   else if (waitingForInput) {
+    // TODO: Timer to pause and continue playing the guess so it's not just a blip
     // idk if I can "get the pressed button" but either way it's a case situation
-    if (arduboy.pressed(UP_BUTTON)) {
+    if (arduboy.justPressed(UP_BUTTON)) {
       playVisAndToneForSeq(0);
       currGuess = 0;
-    } else if (arduboy.pressed(DOWN_BUTTON)) {
+    } else if (arduboy.justPressed(DOWN_BUTTON)) {
       playVisAndToneForSeq(1);
       currGuess = 1;
-    } else if (arduboy.pressed(LEFT_BUTTON)) {
+    } else if (arduboy.justPressed(LEFT_BUTTON)) {
       playVisAndToneForSeq(2);
       currGuess = 2;
-    } else if (arduboy.pressed(RIGHT_BUTTON)) {
+    } else if (arduboy.justPressed(RIGHT_BUTTON)) {
       playVisAndToneForSeq(3);
       currGuess = 3;
     }
     
     // Is there a better way to wait (poll?) for a button press
     if (currGuess != -1) {
-      if (currGuess == seq[guessCtr]) {
-        // Do nothing, carry on
-        beep.tone(beep.freq(800), 5);
-      } else {
+      if (currGuess != seq[guessCtr]) {
         // Failed, show score, etc.
         // For now just show end screen
         beep.tone(beep.freq(100), 5);
-        // isGameOver = true;
+        isGameOver = true;
+        return;
       }
       
       guessCtr++;
       // Check if that was the last guess, and thus move on
       if (guessCtr == seqLength) {
         // If we've now guessed the number of items in seq, good job move on
+        guessCtr = 0;
         waitingForInput = false;
-        newItemToSeq();
-      }
+        isBetweenRounds = true;
+      } // Else we do nothing. Guess ctr already progressed
        
       currGuess = -1;
     }
   }
-
-  // Some test stuff
 }
-
 
 void newItemToSeq() {
     // Find random num, add to seq, then play the sequence
@@ -211,7 +229,8 @@ void newItemToSeq() {
     seq[seqLength] = newSeq;
     seqLength += 1;
     currLevel += 1;
-    tick = 0;
+    seqCurrPtr = 0;
+    tick = seqTimerTickVal;
     isPlayingSequence = true;
 }
 
@@ -263,21 +282,6 @@ void drawGameState() {
   drawHorizRect(southRect[0], southRect[1]);
   drawVertRect(westRect[0], westRect[1]);
   drawVertRect(eastRect[0], eastRect[1]);
-
-  if (selectedRect != 0) {
-    if (selectedRect == 1) {
-      drawFilledHorizRect(northRect[0], northRect[1]);
-    }
-    if (selectedRect == 2) {
-      drawFilledHorizRect(southRect[0], southRect[1]);
-    }
-    if (selectedRect == 3) {
-      drawFilledVertRect(westRect[0], westRect[1]);
-    }
-    if (selectedRect == 4) {
-      drawFilledVertRect(eastRect[0], eastRect[1]);
-    }
-  }
 }
 
 int cornerRad = 0; // For now to test sizing
@@ -314,5 +318,21 @@ void showEndScreen() {
   arduboy.setTextSize(1);
   arduboy.setCursor(31, 53);
   arduboy.print("A TO TRY AGAIN");
+  
+  // Lazy way of resetting game state
+  // Anything not here just gets overwritten anyway
+  currLevel = 0;
+  seqLength = 0;
+  waitingForInput = false;
+  addNewNumToSeq = true;
+
+  isPlayingSequence = false;
+  isBetweenRounds = false;
+
+  tick = 0;
+
+  guessCtr = 0;
+  currGuess = -1;
+
 }
 
